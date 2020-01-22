@@ -28,46 +28,48 @@
 #
 #
 
-class UserDto:
-    def __init__(self, user):
-        self.username = user.username
-        self.email = user.email
-        self.validated = user.validated
-        self.role = user.role
+from abc import abstractmethod
+
+from tvb.basic.exceptions import TVBException
 
 
-class ProjectDto:
-    def __init__(self, project):
-        self.gid = project.gid
-        self.name = project.name
-        self.description = project.description
-        self.gid = project.gid
-        self.version = project.version
+class BaseRestException(TVBException):
+    def __init__(self, message=None, code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message if message is not None and message.strip() else self.get_default_message()
+        self.code = code
+        self.payload = payload
+
+    def to_dict(self):
+        payload = dict(self.payload or ())
+        payload['message'] = self.message
+        payload['code'] = self.code
+        return payload
+
+    @abstractmethod
+    def get_default_message(self):
+        return None
 
 
-class OperationDto:
-    def __init__(self, operation):
-        self.user_id = operation['user'].id
-        self.algorithm_id = operation['algorithm'].id
-        self.group = operation['group']
-        self.gid = operation['gid']
-        self.create_date = operation['create']
-        self.start_date = operation['start']
-        self.completion_date = operation['complete']
-        self.status = operation['status']
-        self.visible = operation['visible']
+class BadRequestException(BaseRestException):
+    def __init__(self, message, payload=None):
+        super(BadRequestException, self).__init__(message, code=400, payload=payload)
+
+    def get_default_message(self):
+        return "Bad request error"
 
 
-class AlgorithmDto:
-    def __init__(self, algorithm):
-        self.module = algorithm.module
-        self.classname = algorithm.classname
-        self.displayname = algorithm.displayname
-        self.description = algorithm.description
+class InvalidIdentifierException(BaseRestException):
+    def __init__(self, message=None, payload=None):
+        super(InvalidIdentifierException, self).__init__(message, code=404, payload=payload)
+
+    def get_default_message(self):
+        return "No data found for the given identifier"
 
 
-class DataTypeDto:
-    def __init__(self, datatype):
-        self.gid = datatype.gid
-        self.name = datatype.display_name
-        self.type = datatype.display_type
+class ClientException(BaseRestException):
+    def __init__(self, message, code):
+        super(ClientException, self).__init__(message, code)
+
+    def get_default_message(self):
+        return "There was an error on client request"

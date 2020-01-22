@@ -27,40 +27,32 @@
 #   Frontiers in Neuroinformatics (7:10. doi: 10.3389/fninf.2013.00010)
 #
 #
+import json
+from functools import wraps
 
-from abc import abstractmethod
-from tvb.basic.exceptions import TVBException
-
-
-class BaseRestException(TVBException):
-    def __init__(self, message=None, code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message if message is not None else self.get_default_message()
-        self.code = code
-        self.payload = payload
-
-    def to_dict(self):
-        payload = dict(self.payload or ())
-        payload['message'] = self.message
-        payload['code'] = self.code
-        return payload
-
-    @abstractmethod
-    def get_default_message(self):
-        return None
+from tvb.interfaces.rest.commons.exceptions import ClientException
 
 
-class BadRequestException(BaseRestException):
-    def __init__(self, message, payload=None):
-        super().__init__(message, code=400, payload=payload)
+def handle_response(func):
+    @wraps(func)
+    def decorator(*a, **b):
+        result = func(*a, **b)
+        response = result
+        classz = None
 
-    def get_default_message(self):
-        return "Bad request error"
+        if isinstance(result, tuple):
+            response = result[0]
+            classz = result[1]
 
+        content = response.content
+        successful_call = response.ok
 
-class InvalidIdentifierException(BaseRestException):
-    def __init__(self, message=None, payload=None):
-        super(InvalidIdentifierException, self).__init__(message, code=404, payload=payload)
+        if successful_call:
+            if classz is not None:
+                return json.loads(content.decode('utf-8'), object_hook=lambda d: classz(**d))
+            return json.loads(content.decode('utf-8'))
 
-    def get_default_message(self):
-        return "No data found for the given identifier"
+        decoded_dict = json.loads(content.decode('utf-8'))
+        raise ClientException(decoded_dict['message'], decoded_dict['code'])
+
+    return decorator

@@ -29,11 +29,12 @@
 #
 
 import os
+
 from tvb.core.entities.file.files_helper import FilesHelper
 from tvb.core.services.exceptions import ProjectServiceException
 from tvb.core.services.project_service import ProjectService
 from tvb.core.services.simulator_service import SimulatorService
-from tvb.interfaces.rest.server.resources.exceptions import InvalidIdentifierException
+from tvb.interfaces.rest.commons.exceptions import InvalidIdentifierException
 from tvb.interfaces.rest.server.resources.project.project_resource import INVALID_PROJECT_GID_MESSAGE
 from tvb.interfaces.rest.server.resources.rest_resource import RestResource
 from tvb.interfaces.rest.server.resources.util import save_temporary_file
@@ -50,7 +51,6 @@ class FireSimulationResource(RestResource):
         """
         :start a simulation using a project id and a zip archive with the simulator data serialized
         """
-        # TODO: inform user about operation gid to monitor
         file = self.extract_file_from_request(FilesHelper.TVB_ZIP_FILE_EXTENSION)
         zip_path = save_temporary_file(file)
 
@@ -62,7 +62,8 @@ class FireSimulationResource(RestResource):
         FilesHelper().unpack_zip(zip_path, os.path.dirname(zip_path))
         user_id = project.fk_admin
 
-        self.simulator_service.prepare_simulation_on_server(burst_config=None, user_id=user_id, project=project,
-                                                            zip_folder_path=zip_path[:-4])
+        operation = self.simulator_service.prepare_simulation_on_server(burst_config=None, user_id=user_id,
+                                                                        project=project,
+                                                                        zip_folder_path=zip_path[:-4])
 
-        return {'message': 'Simulation started'}, 201
+        return operation.gid, 201
