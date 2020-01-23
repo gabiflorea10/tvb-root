@@ -67,6 +67,24 @@ class InvalidIdentifierException(BaseRestException):
         return "No data found for the given identifier"
 
 
+class InvalidInputException(BadRequestException):
+    def __init__(self, message=None, payload=None):
+        super(InvalidInputException, self).__init__(message, payload=payload)
+
+    def get_default_message(self):
+        return "The input file is incomplete"
+
+
+class ServiceException(BaseRestException):
+    message_prefix = "Something went wrong on the server side"
+
+    def __init__(self, message, code=500, payload=None):
+        super(ServiceException, self).__init__(message, code, payload)
+        self.message = self.message_prefix + ": " + message
+
+    def get_default_message(self):
+        return self.message_prefix
+
 class ClientException(BaseRestException):
     def __init__(self, message, code):
         super(ClientException, self).__init__(message, code)
