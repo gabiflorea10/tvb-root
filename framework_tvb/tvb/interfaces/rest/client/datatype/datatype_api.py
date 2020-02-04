@@ -28,31 +28,45 @@
 #
 #
 
+import cgi
+import json
+import os
 import requests
 from tvb.interfaces.rest.client.client_decorators import handle_response
 from tvb.interfaces.rest.client.main_api import MainApi
+from tvb.interfaces.rest.commons import RestLink, LinkPlaceholder
 from tvb.interfaces.rest.commons.dtos import AlgorithmDto
+from tvb.interfaces.rest.commons.exceptions import ClientException
 
 
 class DataTypeApi(MainApi):
 
     def retrieve_datatype(self, datatype_gid, download_folder):
-        response = requests.get(self.server_url + "/datatypes/" + datatype_gid)
+        response = requests.get(self.build_request_url(
+            RestLink.GET_DATATYPE.compute_url(True,
+                                              {LinkPlaceholder.DATATYPE_GID.value: datatype_gid})))
         content_disposition = response.headers['Content-Disposition']
-        start_index = content_disposition.index("filename=") + 9
-        end_index = len(content_disposition)
-        file_name = content_disposition[start_index:end_index]
+        value, params = cgi.parse_header(content_disposition)
+        file_name = params['filename']
+        file_path = os.path.join(download_folder, os.path.basename(file_name))
 
-        file_path = download_folder + '/' + file_name
-
-        if response.status_code == 200:
+        if response.ok:
             with open(file_path, 'wb') as local_file:
                 for chunk in response.iter_content(chunk_size=128):
                     local_file.write(chunk)
-            return True
-        return False
+            return file_path
+
+        error_response = json.loads(response.content.decode('utf-8'))
+        raise ClientException(error_response['message'], error_response['code'])
 
     @handle_response
     def get_operations_for_datatype(self, datatype_gid):
-        response = requests.get(self.server_url + "/datatypes/" + datatype_gid + "/operations")
+        response = requests.get(
+            self.build_request_url(RestLink.DATATYPE_OPERATIONS.compute_url(True, {
+                LinkPlaceholder.DATATYPE_GID.value: datatype_gid
+            })))
         return response, AlgorithmDto
+
+    def load_datatype(self, datatype_path):
+        # TODO: TO BE IMPLEMENTED
+        pass

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 #
 #
-# TheVirtualBrain-Framework Package. This package holds all Data Management, and
-# Web-UI helpful to run brain-simulations. To use it, you also need do download
-# TheVirtualBrain-Scientific Package (for simulators). See content of the
+# TheVirtualBrain-Scientific Package. This package holds all simulators, and
+# analysers necessary to run brain-simulations. You can use it stand alone or
+# in conjunction with TheVirtualBrain-Framework Package. See content of the
 # documentation-folder for more details. See also http://www.thevirtualbrain.org
 #
 # (c) 2012-2020, Baycrest Centre for Geriatric Care ("Baycrest") and others
@@ -28,23 +28,5 @@
 #
 #
 
-import requests
-
-from tvb.interfaces.rest.client.client_decorators import handle_response
-from tvb.interfaces.rest.client.main_api import MainApi
-from tvb.interfaces.rest.commons import RestNamespace, RestLink, LinkPlaceholder
-from tvb.interfaces.rest.commons.dtos import UserDto, ProjectDto
-
-
-class UserApi(MainApi):
-    @handle_response
-    def get_users(self):
-        response = requests.get(self.build_request_url(RestNamespace.USERS.value))
-        return response, UserDto
-
-    @handle_response
-    def get_projects_list(self, username):
-        response = requests.get(self.build_request_url(RestLink.PROJECTS_LIST.compute_url(True, {
-            LinkPlaceholder.USERNAME.value: username
-        })))
-        return response, ProjectDto
+from tvb.tests.framework.conftest import connectivity_factory, time_series_factory, user_factory, project_factory, \
+    operation_factory, time_series_index_factory
