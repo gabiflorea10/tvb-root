@@ -38,7 +38,6 @@ import zipfile
 from contextlib import closing
 from tvb.basic.profile import TvbProfile
 from tvb.core.entities.model.simulator.simulator import SimulatorIndex
-from tvb.core.entities.model.model_burst import BurstConfiguration
 from tvb.core.entities.storage import dao
 from tvb.core.entities.file.files_helper import FilesHelper
 from tvb.core.entities.file.simulator.simulator_h5 import SimulatorH5
@@ -46,7 +45,7 @@ from tvb.core.neocom import h5
 from tvb.adapters.exporters.export_manager import ExportManager
 from tvb.adapters.exporters.exceptions import ExportException, InvalidExportDataException
 from tvb.simulator.simulator import Simulator
-from tvb.tests.framework.core.base_testcase import TransactionalTestCase
+from tvb.tests.framework.core.base_testcase import TransactionalTestCase, BurstConfiguration
 from tvb.tests.framework.core.factory import TestFactory
 
 

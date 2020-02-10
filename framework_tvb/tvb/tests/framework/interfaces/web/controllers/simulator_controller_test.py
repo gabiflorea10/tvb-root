@@ -29,12 +29,13 @@
 #
 
 from os import path
+from uuid import UUID
 from mock import patch
 from tvb.adapters.creators.stimulus_creator import RegionStimulusCreator
 from tvb.adapters.datatypes.db.patterns import StimuliRegionIndex
 from tvb.adapters.datatypes.db.surface import SurfaceIndex
 from tvb.adapters.simulator.simulator_adapter import SimulatorAdapterModel, CortexViewModel
-from tvb.adapters.uploaders.sensors_importer import SensorsImporterForm, SensorsImporterModel
+from tvb.adapters.uploaders.sensors_importer import SensorsImporterModel
 from tvb.basic.profile import TvbProfile
 import numpy
 import tvb_data
@@ -60,7 +61,7 @@ from tvb.interfaces.web.controllers.common import *
 from tvb.interfaces.web.controllers.simulator_controller import SimulatorController, common
 from tvb.simulator.coupling import Sigmoidal
 from tvb.simulator.integrators import HeunDeterministic, IntegratorStochastic, Dopri5Stochastic, EulerStochastic
-from tvb.simulator.models import Generic2dOscillator
+from tvb.simulator.models import ModelsEnum
 from tvb.simulator.monitors import TemporalAverage, MEG, Bold, SubSample, EEG, iEEG
 from tvb.simulator.noise import Multiplicative
 from tvb.tests.framework.core.factory import TestFactory
@@ -171,22 +172,21 @@ class TestSimulationController(BaseTransactionalControllerTest, helper.CPWebCase
         zip_path = path.join(path.dirname(tvb_data.__file__), 'connectivity', 'connectivity_66.zip')
         TestFactory.import_zip_connectivity(self.test_user, self.test_project, zip_path)
         connectivity_index = TestFactory.get_entity(self.test_project, ConnectivityIndex)
-        connectivity = h5.load_from_index(connectivity_index)
-        weight_array = numpy.zeros(connectivity.number_of_regions)
+        weight_array = numpy.zeros(connectivity_index.number_of_regions)
 
         region_stimulus_creator = RegionStimulusCreator()
         view_model = region_stimulus_creator.get_view_model_class()()
-        view_model.connectivity = connectivity.gid
+        view_model.connectivity = UUID(connectivity_index.gid)
         view_model.weight = weight_array
         view_model.temporal = TemporalApplicableEquation()
         view_model.temporal.parameters['a'] = 1.0
         view_model.temporal.parameters['b'] = 2.0
 
-        FlowService().fire_operation(region_stimulus_creator, self.test_user, self.test_project.id, view_model=view_model)
+        FlowService().fire_operation(region_stimulus_creator, self.test_user, self.test_project.id,
+                                     view_model=view_model)
         region_stimulus_index = TestFactory.get_entity(self.test_project, StimuliRegionIndex)
-        region_stimulus = h5.load_from_index(region_stimulus_index)
 
-        self.sess_mock['_region_stimuli'] = region_stimulus.gid
+        self.sess_mock['_region_stimuli'] = UUID(region_stimulus_index.gid)
 
         with patch('cherrypy.session', self.sess_mock, create=True):
             common.add2session(common.KEY_SIMULATOR_CONFIG, self.session_stored_simulator)
@@ -202,7 +202,7 @@ class TestSimulationController(BaseTransactionalControllerTest, helper.CPWebCase
             common.add2session(common.KEY_SIMULATOR_CONFIG, self.session_stored_simulator)
             self.simulator_controller.set_model(**self.sess_mock._data)
 
-        assert isinstance(self.session_stored_simulator.model, Generic2dOscillator), "Model class is incorrect."
+        assert isinstance(self.session_stored_simulator.model, ModelsEnum.GENERIC_2D_OSCILLATOR.get_class()), "Model class is incorrect."
 
     def test_set_model_params(self):
         self.sess_mock['_tau'] = '[1.0]'
